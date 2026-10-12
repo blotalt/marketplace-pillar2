@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniCommerce — Pillar 2: E-Commerce & Marketplace Live Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    @media print {
+      body * { visibility: hidden; }
+      #printable-invoice, #printable-invoice * { visibility: visible; }
+      #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen selection:bg-indigo-500 selection:text-white">
+
+<div id="app" class="min-h-screen flex flex-col justify-between">
+
+  <!-- Header / Navbar -->
+  <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 cursor-pointer" @click="activeTab = 'catalog'">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-xl tracking-tight text-white">OmniCommerce</span>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Pillar 2</span>
+            </div>
+            <p class="text-xs text-slate-400">Physical · Digital · SaaS · Courses</p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="hidden md:flex items-center space-x-1 bg-slate-800/60 p-1.5 rounded-2xl border border-slate-700/60">
+          <button
+            @click="activeTab = 'catalog'"
+            :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2', activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-700/50']"
+          >
+            <span>🛍️ Marketplace</span>
+          </button>
+          <button
+            @click="activeTab = 'invoice'"
+            :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2', activeTab === 'invoice' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-700/50']"
+          >
+            <span>🧾 Invoice Generator</span>
+          </button>
+          <button
+            @click="activeTab = 'affiliate'"
+            :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2', activeTab === 'affiliate' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-700/50']"
+          >
+            <span>🤝 Affiliates</span>
+          </button>
+          <button
+            @click="activeTab = 'reviews'"
+            :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2', activeTab === 'reviews' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-700/50']"
+          >
+            <span>⭐ Reviews</span>
+          </button>
+        </nav>
+
+        <!-- Currency Switcher & Cart Trigger -->
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <select
+              v-model="currency"
+              class="appearance-none bg-slate-800 text-slate-200 text-sm font-medium rounded-xl pl-3 pr-8 py-2 border border-slate-700 hover:border-slate-600 focus:outline-none cursor-pointer"
+            >
+              <option v-for="c in currencies" :key="c.code" :value="c.code">
+                {{ c.code }} ({{ c.symbol }})
+              </option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+
+          <button
+            @click="isCartOpen = !isCartOpen"
+            class="relative flex items-center space-x-2.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold text-sm hover:from-indigo-500 hover:to-indigo-400 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+          >
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span class="hidden sm:inline">Cart</span>
+            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold bg-white text-indigo-700">
+              {{ cartItemCount }}
+            </span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Mobile nav tabs -->
+      <div class="md:hidden flex items-center space-x-2 pb-3 overflow-x-auto">
+        <button @click="activeTab = 'catalog'" :class="['px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap', activeTab === 'catalog' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300']">🛍️ Marketplace</button>
+        <button @click="activeTab = 'invoice'" :class="['px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap', activeTab === 'invoice' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300']">🧾 Invoices</button>
+        <button @click="activeTab = 'affiliate'" :class="['px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap', activeTab === 'affiliate' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300']">🤝 Affiliates</button>
+        <button @click="activeTab = 'reviews'" :class="['px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap', activeTab === 'reviews' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300']">⭐ Reviews</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- TAB 1: PRODUCT CATALOG -->
+    <div v-if="activeTab === 'catalog'" class="space-y-8">
+      <!-- Hero -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-purple-950/80 border border-indigo-900/40 p-8 sm:p-12 shadow-2xl">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wide mb-4 border border-indigo-500/30">
+            <span>🚀 Pillar 2: E-Commerce & Digital Marketplace</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Sell physical goods, digital assets, SaaS tiers, and courses.
+          </h1>
+          <p class="mt-4 text-base sm:text-lg text-slate-300 leading-relaxed">
+            Multi-type catalog, universal slide-out cart, live multi-currency switcher, interactive PDF invoices, affiliate attribution, and verified customer testimonials.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-slate-300">
+            <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl">⚡ Universal Slide-Out Cart</span>
+            <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl">💱 7 Currencies + Crypto</span>
+            <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl">🏷️ Promo Codes (SAVE20, DIGITAL50)</span>
+            <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl">🧾 Instant PDF Invoices</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="bg-slate-800/60 p-4 sm:p-5 rounded-2xl border border-slate-700/60 space-y-4">
+        <!-- Type Filter Pills -->
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+          <button
+            v-for="tab in filterTabs"
+            :key="tab.key"
+            @click="selectedType = tab.key"
+            :class="[
+              'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-2 whitespace-nowrap',
+              selectedType === tab.key
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-400/40'
+                : 'bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-700/60 border border-slate-700/40'
+            ]"
+          >
+            <span>{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+            <span :class="['text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1', selectedType === tab.key ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400']">
+              {{ getTypeCount(tab.key) }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Search & Sort Row -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-700/40">
+          <div class="relative w-full sm:w-80">
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search products, formats, or skills..."
+              class="w-full bg-slate-900 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-10 pr-4 py-2.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+            <span class="text-xs text-slate-400 whitespace-nowrap">Sort by:</span>
+            <select
+              v-model="sortOrder"
+              class="bg-slate-900 text-slate-200 text-sm font-medium rounded-xl px-3 py-2 border border-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value="featured">✨ Featured & Recommended</option>
+              <option value="price_asc">💵 Price: Low to High</option>
+              <option value="price_desc">💎 Price: High to Low</option>
+              <option value="rating">⭐ Highest Rated</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div
+          v-for="product in filteredProducts"
+          :key="product.id"
+          class="group bg-slate-800/80 rounded-2xl border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1"
+        >
+          <div class="relative h-52 w-full overflow-hidden bg-slate-900">
+            <img :src="product.image_url" :alt="product.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+
+            <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+              <span :class="['text-xs font-semibold px-2.5 py-1 rounded-lg border backdrop-blur-md flex items-center space-x-1', getTypeBadge(product.product_type).color]">
+                <span>{{ getTypeBadge(product.product_type).icon }}</span>
+                <span>{{ getTypeBadge(product.product_type).label }}</span>
+              </span>
+            </div>
+
+            <div v-if="product.badge_label" class="absolute top-3 right-3">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-600/90 text-white shadow-md">
+                {{ product.badge_label }}
+              </span>
+            </div>
+
+            <div class="absolute bottom-3 right-3 flex items-baseline space-x-2">
+              <span v-if="product.compare_at_price" class="text-xs text-slate-400 line-through">
+                {{ formatCurrency(product.compare_at_price) }}
+              </span>
+              <span class="text-lg font-extrabold text-white bg-slate-900/80 px-2.5 py-0.5 rounded-lg border border-slate-700/80">
+                {{ formatCurrency(product.price) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                <span>{{ product.category }}</span>
+                <div class="flex items-center space-x-1 text-amber-400">
+                  <span>★</span>
+                  <span class="font-bold text-slate-200">{{ product.rating_average }}</span>
+                  <span class="text-slate-500">({{ product.rating_count }})</span>
+                </div>
+              </div>
+
+              <h3 @click="openModal(product)" class="font-bold text-base text-white group-hover:text-indigo-400 transition-colors line-clamp-1 cursor-pointer">
+                {{ product.name }}
+              </h3>
+
+              <p class="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                {{ product.short_description }}
+              </p>
+
+              <!-- Dynamic Spec Badges -->
+              <div class="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap gap-2 text-[11px] text-slate-300">
+                <template v-if="product.product_type === 'PHYSICAL'">
+                  <span class="bg-slate-700/50 px-2 py-0.5 rounded border border-slate-600/50">📦 Stock: {{ product.stock_quantity }}</span>
+                  <span class="bg-slate-700/50 px-2 py-0.5 rounded border border-slate-600/50">⚖️ {{ product.weight_kg }} kg</span>
+                </template>
+                <template v-if="product.product_type === 'DIGITAL'">
+                  <span class="bg-cyan-950/40 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800/40">⚡ Instant ({{ product.file_size_mb }} MB)</span>
+                  <span class="bg-slate-700/50 px-2 py-0.5 rounded border border-slate-600/50">{{ product.file_format }}</span>
+                </template>
+                <template v-if="product.product_type === 'SAAS'">
+                  <span class="bg-amber-950/40 text-amber-300 px-2 py-0.5 rounded border border-amber-800/40">🔁 Billed {{ product.billing_interval }}</span>
+                  <span class="bg-slate-700/50 px-2 py-0.5 rounded border border-slate-600/50">{{ product.trial_period_days }}-Day Trial</span>
+                </template>
+                <template v-if="product.product_type === 'COURSE'">
+                  <span class="bg-purple-950/40 text-purple-300 px-2 py-0.5 rounded border border-purple-800/40">⏱️ {{ product.duration_hours }} hrs</span>
+                  <span class="bg-slate-700/50 px-2 py-0.5 rounded border border-slate-600/50">📚 {{ product.lesson_count }} Lessons</span>
+                </template>
+              </div>
+            </div>
+
+            <div class="mt-5 grid grid-cols-2 gap-2 pt-2">
+              <button @click="openModal(product)" class="w-full py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold text-center">
+                View Specs
+              </button>
+              <button @click="addToCart(product)" class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center space-x-1 shadow-md shadow-indigo-600/20 active:scale-95">
+                <span>Add to Cart</span>
+                <span>+</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: INVOICE GENERATOR -->
+    <div v-else-if="activeTab === 'invoice'" class="space-y-8">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80">
+        <div>
+          <h2 class="text-xl font-extrabold text-white flex items-center space-x-2">
+            <span>🧾</span><span>Interactive Invoice & Receipt Generator</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Customize line items, tax ID, and billing details in real time. Download or print instant PDF receipts.
+          </p>
+        </div>
+        <div class="flex items-center space-x-3 w-full sm:w-auto">
+          <button @click="printInvoice" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 flex items-center space-x-1.5 active:scale-95">
+            <span>🖨️</span><span>Download / Print PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Settings Column -->
+        <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 space-y-4 text-xs h-fit">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">⚙️ Invoice Settings</h3>
+          <div>
+            <label class="block text-slate-400 mb-1">Invoice Number</label>
+            <input type="text" v-model="invoiceData.number" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Company / Seller Name</label>
+            <input type="text" v-model="invoiceData.companyName" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Tax / VAT ID</label>
+            <input type="text" v-model="invoiceData.companyTaxId" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Client Full Name</label>
+            <input type="text" v-model="invoiceData.clientName" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-400 mb-1">Tax Rate (%)</label>
+              <input type="number" step="0.1" v-model="invoiceData.taxRate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Discount Deduction</label>
+              <input type="number" step="1" v-model="invoiceData.discount" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Paper Preview Column -->
+        <div class="lg:col-span-2">
+          <div id="printable-invoice" class="bg-white text-slate-900 p-8 sm:p-10 rounded-2xl shadow-2xl border border-slate-200 space-y-8">
+            <div class="flex justify-between items-start border-b border-slate-200 pb-6">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">Ω</span>
+                  <span class="text-xl font-extrabold text-slate-900 tracking-tight">{{ invoiceData.companyName }}</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm">100 Tech Plaza, Suite 400, San Francisco, CA 94105, USA</p>
+                <p class="text-xs text-slate-500 mt-0.5 font-mono">Tax ID: {{ invoiceData.companyTaxId }}</p>
+              </div>
+              <div class="text-right">
+                <span class="inline-block bg-emerald-100 text-emerald-800 font-extrabold text-xs px-3 py-1 rounded-full uppercase tracking-wider mb-2">✓ PAID & SETTLED</span>
+                <h1 class="text-2xl font-black text-slate-900 font-mono tracking-tight">{{ invoiceData.number }}</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Date: {{ invoiceData.date }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 text-xs text-slate-700">
+              <div>
+                <span class="font-bold text-slate-400 uppercase tracking-wider block mb-1">Billed To:</span>
+                <p class="font-bold text-sm text-slate-900">{{ invoiceData.clientName }}</p>
+                <p class="text-slate-600">{{ invoiceData.clientEmail }}</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold text-slate-400 uppercase tracking-wider block mb-1">Payment Method:</span>
+                <p class="font-bold text-slate-900">OmniCommerce Multi-Currency Gateway</p>
+                <p class="text-slate-600 font-mono">Currency: {{ currency }}</p>
+              </div>
+            </div>
+
+            <!-- Table of Items -->
+            <div>
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b-2 border-slate-900 text-slate-900 font-bold uppercase tracking-wider">
+                    <th class="py-3 px-2">Description</th>
+                    <th class="py-3 px-2 w-16 text-center">Qty</th>
+                    <th class="py-3 px-2 w-24 text-right">Price</th>
+                    <th class="py-3 px-2 w-24 text-right">Subtotal</th>
+                    <th class="py-3 px-2 w-8 text-center print:hidden"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="(item, idx) in invoiceData.items" :key="idx" class="hover:bg-slate-50">
+                    <td class="py-2.5 px-2">
+                      <input type="text" v-model="item.desc" class="w-full bg-transparent focus:bg-white rounded p-1 border-0" />
+                    </td>
+                    <td class="py-2.5 px-2 text-center">
+                      <input type="number" min="1" v-model="item.qty" class="w-12 text-center bg-transparent focus:bg-white rounded p-1 border-0 font-semibold" />
+                    </td>
+                    <td class="py-2.5 px-2 text-right">
+                      <input type="number" step="0.01" v-model="item.price" class="w-20 text-right bg-transparent focus:bg-white rounded p-1 border-0 font-semibold" />
+                    </td>
+                    <td class="py-2.5 px-2 text-right font-bold text-slate-900">
+                      {{ (item.qty * item.price).toFixed(2) }}
+                    </td>
+                    <td class="py-2.5 px-2 text-center print:hidden">
+                      <button @click="invoiceData.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-600">✕</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button @click="invoiceData.items.push({ desc: 'Custom Asset / Service', qty: 1, price: 50 })" class="mt-3 px-3 py-1 text-xs font-semibold text-indigo-600 border border-dashed border-indigo-300 rounded-lg hover:bg-indigo-50 print:hidden">
+                + Add Line Item
+              </button>
+            </div>
+
+            <!-- Totals -->
+            <div class="flex justify-between items-start pt-4 border-t border-slate-200 text-xs">
+              <div class="text-slate-500 max-w-xs">
+                <p class="italic">Thank you for your purchase! All digital assets include lifetime license updates.</p>
+                <p class="mt-2 font-mono text-[11px]">Ledger: SHA256-{{ Math.random().toString(36).substring(2, 10).toUpperCase() }}</p>
+              </div>
+              <div class="w-56 space-y-1.5 text-slate-600">
+                <div class="flex justify-between"><span>Subtotal:</span><span class="font-semibold">{{ currentSymbol }} {{ invoiceSubtotal.toFixed(2) }}</span></div>
+                <div v-if="invoiceData.discount > 0" class="flex justify-between text-emerald-600 font-medium"><span>Discount:</span><span>-{{ currentSymbol }} {{ Number(invoiceData.discount).toFixed(2) }}</span></div>
+                <div class="flex justify-between"><span>Tax ({{ invoiceData.taxRate }}%):</span><span>{{ currentSymbol }} {{ invoiceTax.toFixed(2) }}</span></div>
+                <div class="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-900"><span>Total:</span><span class="text-indigo-600 font-mono">{{ currentSymbol }} {{ invoiceTotal.toFixed(2) }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: AFFILIATE DASHBOARD -->
+    <div v-else-if="activeTab === 'affiliate'" class="space-y-8">
+      <div class="bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 p-6 sm:p-8 rounded-3xl border border-indigo-900/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">
+        <div>
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wide mb-3 border border-indigo-500/30">
+            <span>🤝 Affiliate Partner Portal</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Sarah Connor (Tech Creator)</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Standard Partner Tier: <strong class="text-emerald-400 font-bold">15% Commission</strong> on all referred hardware, digital downloads, SaaS, and course sales.
+          </p>
+        </div>
+        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+          <div>
+            <span class="text-[11px] text-slate-400 block">Available Balance:</span>
+            <span class="text-xl font-extrabold text-emerald-400 font-mono">${{ affiliateBalance.toFixed(2) }}</span>
+          </div>
+          <button @click="requestPayout" :disabled="affiliateBalance <= 0" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition-transform active:scale-95">
+            Request Payout 💸
+          </button>
+        </div>
+      </div>
+
+      <div v-if="payoutMsg" class="bg-emerald-950/60 border border-emerald-500/50 p-4 rounded-2xl text-emerald-300 text-xs">
+        ✓ {{ payoutMsg }}
+      </div>
+
+      <!-- Referral Link Box -->
+      <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 space-y-3">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Your Personalized Referral Link</h3>
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+          <input type="text" readonly :value="referralLink" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-mono text-xs" />
+          <button @click="copyReferral" class="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
+            <span>{{ copySuccess ? 'Copied to Clipboard! ✓' : 'Copy Referral Link 📋' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Metric Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-800/70 p-5 rounded-2xl border border-slate-700/60">
+          <span class="text-xs text-slate-400 block mb-1">Total Link Clicks</span>
+          <span class="text-2xl font-extrabold text-white font-mono">1,840</span>
+          <span class="text-[11px] text-emerald-400 block mt-1">↑ +14.2% traffic</span>
+        </div>
+        <div class="bg-slate-800/70 p-5 rounded-2xl border border-slate-700/60">
+          <span class="text-xs text-slate-400 block mb-1">Referred Orders</span>
+          <span class="text-2xl font-extrabold text-white font-mono">142</span>
+          <span class="text-[11px] text-indigo-400 block mt-1">Verified purchases</span>
+        </div>
+        <div class="bg-slate-800/70 p-5 rounded-2xl border border-slate-700/60">
+          <span class="text-xs text-slate-400 block mb-1">Conversion Rate</span>
+          <span class="text-2xl font-extrabold text-cyan-400 font-mono">7.72%</span>
+          <span class="text-[11px] text-cyan-500 block mt-1">Clicks to orders</span>
+        </div>
+        <div class="bg-slate-800/70 p-5 rounded-2xl border border-slate-700/60">
+          <span class="text-xs text-slate-400 block mb-1">Gross Earnings</span>
+          <span class="text-2xl font-extrabold text-emerald-400 font-mono">${{ (3420 + (540 - affiliateBalance)).toFixed(2) }}</span>
+          <span class="text-[11px] text-slate-400 block mt-1">All-time commissions</span>
+        </div>
+      </div>
+
+      <!-- Conversion Chart Simulator -->
+      <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 space-y-4">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Weekly Conversion Velocity</h3>
+        <div class="grid grid-cols-4 gap-4 pt-4">
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-2">
+            <span class="text-xs text-slate-400">Week 1</span>
+            <div class="h-16 flex items-end justify-center"><div class="w-12 bg-indigo-600 rounded-t h-[65%]"></div></div>
+            <span class="text-[10px] text-slate-400 block">$780.00 earned</span>
+          </div>
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-2">
+            <span class="text-xs text-slate-400">Week 2</span>
+            <div class="h-16 flex items-end justify-center"><div class="w-12 bg-indigo-600 rounded-t h-[80%]"></div></div>
+            <span class="text-[10px] text-slate-400 block">$920.00 earned</span>
+          </div>
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-2">
+            <span class="text-xs text-slate-400">Week 3</span>
+            <div class="h-16 flex items-end justify-center"><div class="w-12 bg-indigo-600 rounded-t h-[50%]"></div></div>
+            <span class="text-[10px] text-slate-400 block">$610.00 earned</span>
+          </div>
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center space-y-2">
+            <span class="text-xs text-slate-400">Week 4 (Now)</span>
+            <div class="h-16 flex items-end justify-center"><div class="w-12 bg-gradient-to-t from-indigo-600 to-purple-500 rounded-t h-[100%]"></div></div>
+            <span class="text-[10px] text-emerald-400 font-bold block">$1,110.00 earned</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: CUSTOMER REVIEWS -->
+    <div v-else-if="activeTab === 'reviews'" class="space-y-8">
+      <div class="bg-slate-800/80 p-6 sm:p-8 rounded-3xl border border-slate-700/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">
+        <div>
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold uppercase tracking-wide mb-3 border border-amber-500/20">
+            <span>⭐ Social Proof & Customer Review Engine</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Verified Customer Testimonials</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Real feedback from authenticated hardware owners, digital kit creators, and academy graduates.
+          </p>
+        </div>
+        <button @click="showWriteModal = true" class="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs rounded-xl shadow-lg active:scale-95">
+          ✍️ Write a Review
+        </button>
+      </div>
+
+      <!-- Rating Breakdown -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60">
+        <div class="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-700/60 pb-6 md:pb-0 md:pr-6 text-center">
+          <span class="text-5xl font-black text-white font-mono">4.9</span>
+          <div class="flex items-center space-x-1 text-amber-400 text-lg mt-2">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          </div>
+          <span class="text-xs text-slate-400 mt-1">Based on {{ reviews.length }} customer reviews</span>
+        </div>
+        <div class="space-y-1.5 md:col-span-2 text-xs">
+          <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="flex items-center space-x-3 cursor-pointer" @click="filterRating = filterRating === star ? 0 : star">
+            <span class="w-8 font-bold text-slate-300">{{ star }} ★</span>
+            <div class="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+              <div class="h-full bg-amber-400 rounded-full" :style="{ width: star === 5 ? '85%' : (star === 4 ? '12%' : '3%') }"></div>
+            </div>
+            <span class="w-10 text-right text-slate-400 font-mono text-[11px]">{{ star === 5 ? '85%' : (star === 4 ? '12%' : '3%') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Feed -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div v-for="review in filteredReviews" :key="review.id" class="bg-slate-800/70 p-6 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-1 text-amber-400 text-sm">
+                <span v-for="s in review.rating" :key="s">★</span>
+              </div>
+              <span v-if="review.is_verified_buyer" class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                ✓ Verified Buyer
+              </span>
+            </div>
+            <div class="text-[11px] text-indigo-400 font-semibold mt-2">Product: {{ review.product_name }}</div>
+            <h4 class="font-bold text-white text-base mt-1">{{ review.title }}</h4>
+            <p class="text-xs text-slate-300 leading-relaxed mt-2">{{ review.comment }}</p>
+            <div v-if="review.photo_url" class="mt-4 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 max-h-48 w-fit">
+              <img :src="review.photo_url" class="max-h-48 object-cover rounded-xl" />
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-700/40 flex items-center justify-between text-xs text-slate-400">
+            <div>
+              <span class="font-bold text-slate-200">{{ review.author_name }}</span>
+              <span class="text-slate-500 ml-1">· {{ review.created_at }}</span>
+            </div>
+            <button @click="review.helpful_votes++" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 text-slate-300 text-xs flex items-center space-x-1 border border-slate-800">
+              <span>👍 Helpful</span>
+              <span class="font-bold font-mono">({{ review.helpful_votes }})</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- UNIVERSAL SLIDE-OUT CART DRAWER -->
+  <div v-if="isCartOpen" class="fixed inset-0 z-50 overflow-hidden">
+    <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" @click="isCartOpen = false"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between">
+        
+        <!-- Cart Header -->
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">🛒</span>
+            <h2 class="text-lg font-extrabold text-white">Universal Cart</h2>
+            <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-bold">{{ cartItemCount }}</span>
+          </div>
+          <button @click="isCartOpen = false" class="text-slate-400 hover:text-white text-lg">✕</button>
+        </div>
+
+        <!-- Tiered Free Shipping Progress Bar -->
+        <div class="px-5 py-3 bg-slate-800/40 border-b border-slate-800">
+          <div v-if="hasPhysicalItems">
+            <div class="flex justify-between text-xs mb-1.5">
+              <span v-if="freeShippingUnlocked" class="text-emerald-400 font-bold">🎉 FREE Shipping Unlocked!</span>
+              <span v-else class="text-slate-300">Add <strong class="text-indigo-400">{{ formatCurrency(amountForFreeShipping) }}</strong> for Free Shipping!</span>
+              <span class="font-bold text-slate-400">{{ freeShippingProgress }}%</span>
+            </div>
+            <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400" :style="{ width: `${freeShippingProgress}%` }"></div>
+            </div>
+          </div>
+          <div v-else class="text-xs text-cyan-300 flex items-center space-x-1 font-medium">
+            <span>⚡ Digital Assets & SaaS — Zero Shipping Fee Always!</span>
+          </div>
+        </div>
+
+        <!-- Items Scroll -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+          <div v-if="cartItems.length === 0" class="text-center py-16 text-slate-400">Your cart is empty.</div>
+          <div v-for="item in cartItems" :key="item.id" class="bg-slate-800/60 rounded-2xl p-3 border border-slate-700/60 flex space-x-3">
+            <img :src="item.image_url" class="w-16 h-16 rounded-xl object-cover bg-slate-900 border border-slate-700" />
+            <div class="flex-1 flex flex-col justify-between">
+              <div class="flex justify-between">
+                <div>
+                  <h4 class="text-xs font-bold text-white line-clamp-1">{{ item.name }}</h4>
+                  <span class="text-[10px] text-indigo-400 uppercase font-semibold">{{ item.product_type }}</span>
+                </div>
+                <button @click="removeItem(item.id)" class="text-slate-500 hover:text-rose-400 text-xs">🗑️</button>
+              </div>
+              <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-700/40">
+                <span class="text-xs font-extrabold text-white">{{ formatCurrency(item.price * item.quantity) }}</span>
+                <div class="flex items-center space-x-1.5 bg-slate-900 rounded-lg p-0.5 border border-slate-700">
+                  <button @click="updateQty(item.id, item.quantity - 1)" class="w-6 h-6 flex items-center justify-center text-xs text-slate-400 hover:text-white">-</button>
+                  <span class="text-xs font-bold text-white px-1.5">{{ item.quantity }}</span>
+                  <button @click="updateQty(item.id, item.quantity + 1)" class="w-6 h-6 flex items-center justify-center text-xs text-slate-400 hover:text-white">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Promo & Totals -->
+        <div class="p-5 bg-slate-900 border-t border-slate-800 space-y-4 text-xs">
+          <div>
+            <div class="flex space-x-2">
+              <input type="text" v-model="couponCode" placeholder="Promo code (e.g. SAVE20)" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono uppercase" />
+              <button @click="applyCoupon" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl">Apply</button>
+            </div>
+            <div class="flex gap-1.5 mt-2">
+              <span class="text-[10px] text-slate-500">Try:</span>
+              <button @click="couponCode = 'SAVE20'; applyCoupon();" class="text-[10px] bg-slate-800 text-indigo-300 font-mono px-1.5 py-0.5 rounded border border-slate-700">SAVE20 (-20%)</button>
+              <button @click="couponCode = 'DIGITAL50'; applyCoupon();" class="text-[10px] bg-slate-800 text-cyan-300 font-mono px-1.5 py-0.5 rounded border border-slate-700">DIGITAL50 (-50%)</button>
+              <button @click="couponCode = 'FREESHIP'; applyCoupon();" class="text-[10px] bg-slate-800 text-emerald-300 font-mono px-1.5 py-0.5 rounded border border-slate-700">FREESHIP</button>
+            </div>
+            <div v-if="couponMessage" :class="['mt-2 font-semibold', couponValid ? 'text-emerald-400' : 'text-rose-400']">{{ couponMessage }}</div>
+          </div>
+
+          <div class="space-y-1.5 text-slate-300 pt-2 border-t border-slate-800">
+            <div class="flex justify-between"><span>Subtotal:</span><span class="font-semibold">{{ formatCurrency(cartSubtotal) }}</span></div>
+            <div v-if="cartDiscount > 0" class="flex justify-between text-emerald-400"><span>Coupon Discount:</span><span>-{{ formatCurrency(cartDiscount) }}</span></div>
+            <div v-if="hasPhysicalItems" class="flex justify-between"><span>Shipping:</span><span :class="cartShipping === 0 ? 'text-emerald-400 font-bold' : ''">{{ cartShipping === 0 ? 'FREE' : formatCurrency(cartShipping) }}</span></div>
+            <div class="flex justify-between"><span>Estimated Tax (8.25%):</span><span>{{ formatCurrency(cartTax) }}</span></div>
+            <div class="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
+              <span>Total in {{ currency }}:</span>
+              <span class="text-base text-indigo-400">{{ formatCurrency(cartTotal) }}</span>
+            </div>
+          </div>
+
+          <button @click="isCartOpen = false; isCheckoutOpen = true;" :disabled="cartItems.length === 0" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm rounded-2xl shadow-xl active:scale-95 disabled:opacity-40">
+            Proceed to Instant Checkout ⚡
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div v-if="isCheckoutOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md" @click="isCheckoutOpen = false"></div>
+    <div class="relative bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-6 z-10 shadow-2xl">
+      <div v-if="orderCompleted" class="text-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center text-3xl">✓</div>
+        <h2 class="text-2xl font-extrabold text-white">Order Completed!</h2>
+        <p class="text-xs text-slate-400">Order Reference: <strong class="font-mono text-slate-200">{{ orderCompleted.number }}</strong></p>
+        <div class="bg-slate-800 p-4 rounded-xl text-left text-xs space-y-2">
+          <span class="font-bold text-white block uppercase">📦 Digital Assets Ready</span>
+          <p class="text-slate-300">Instant download license key generated:</p>
+          <span class="bg-indigo-950 text-indigo-300 px-3 py-1.5 rounded-lg border border-indigo-800 font-mono block">KEY-{{ Math.random().toString(36).substring(2, 10).toUpperCase() }}</span>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button @click="loadOrderIntoInvoice(orderCompleted); isCheckoutOpen = false; activeTab = 'invoice';" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg">
+            🧾 View & Print PDF Invoice
+          </button>
+          <button @click="isCheckoutOpen = false" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl">Close</button>
+        </div>
+      </div>
+
+      <div v-else class="space-y-4 text-xs">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+          <h3 class="text-base font-bold text-white">Instant Checkout ({{ currency }})</h3>
+          <button @click="isCheckoutOpen = false" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Full Name</label>
+          <input type="text" v-model="checkoutForm.name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Email</label>
+          <input type="email" v-model="checkoutForm.email" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Referral / Affiliate Code</label>
+          <input type="text" v-model="checkoutForm.refCode" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white uppercase font-mono" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Payment Method</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button @click="checkoutForm.method = 'Card'" :class="['p-2.5 rounded-xl border font-bold', checkoutForm.method === 'Card' ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-slate-800 text-slate-400']">💳 Card</button>
+            <button @click="checkoutForm.method = 'Crypto'" :class="['p-2.5 rounded-xl border font-bold', checkoutForm.method === 'Crypto' ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-slate-800 text-slate-400']">🪙 Crypto</button>
+            <button @click="checkoutForm.method = 'PayPal'" :class="['p-2.5 rounded-xl border font-bold', checkoutForm.method === 'PayPal' ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-slate-800 text-slate-400']">🅿️ PayPal</button>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-800 flex justify-between items-center text-sm font-extrabold text-white">
+          <span>Total:</span>
+          <span class="text-indigo-400 text-lg">{{ formatCurrency(cartTotal) }}</span>
+        </div>
+        <button @click="completeOrder" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl shadow-lg active:scale-95">
+          Authorize & Complete Purchase ⚡
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div v-if="modalProduct" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md" @click="modalProduct = null"></div>
+    <div class="relative bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 z-10 shadow-2xl">
+      <div class="flex justify-between items-start">
+        <h2 class="text-xl font-bold text-white">{{ modalProduct.name }}</h2>
+        <button @click="modalProduct = null" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <img :src="modalProduct.image_url" class="w-full h-56 object-cover rounded-2xl border border-slate-800" />
+      <p class="text-xs text-slate-300 leading-relaxed">{{ modalProduct.description || modalProduct.short_description }}</p>
+      <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 text-xs space-y-2">
+        <span class="font-bold text-white uppercase block">Specifications:</span>
+        <div v-if="modalProduct.product_type === 'PHYSICAL'" class="grid grid-cols-2 gap-2 text-slate-300">
+          <div>SKU: <strong class="font-mono text-white">{{ modalProduct.sku }}</strong></div>
+          <div>Stock: <strong class="text-emerald-400">{{ modalProduct.stock_quantity }} units</strong></div>
+          <div>Weight: <strong>{{ modalProduct.weight_kg }} kg</strong></div>
+          <div>Dimensions: <strong>{{ modalProduct.dimensions }}</strong></div>
+        </div>
+        <div v-else-if="modalProduct.product_type === 'DIGITAL'" class="text-cyan-300">
+          Format: {{ modalProduct.file_format }} · Size: {{ modalProduct.file_size_mb }} MB · Instant token download
+        </div>
+        <div v-else-if="modalProduct.product_type === 'SAAS'" class="text-amber-300">
+          {{ modalProduct.tier_level }} · {{ modalProduct.trial_period_days }}-Day Free Trial · Billed {{ modalProduct.billing_interval }}
+        </div>
+        <div v-else class="text-purple-300">
+          Duration: {{ modalProduct.duration_hours }} hrs · {{ modalProduct.lesson_count }} Lessons · Instructor: {{ modalProduct.instructor_name }}
+        </div>
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <span class="text-xl font-extrabold text-white">{{ formatCurrency(modalProduct.price) }}</span>
+        <button @click="addToCart(modalProduct); modalProduct = null;" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg">
+          Add to Cart 🛒
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WRITE REVIEW MODAL -->
+  <div v-if="showWriteModal" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md" @click="showWriteModal = false"></div>
+    <div class="relative bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 z-10 text-xs shadow-2xl">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-white">Write a Review</h3>
+        <button @click="showWriteModal = false" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1">Your Name</label>
+        <input type="text" v-model="newReview.author" placeholder="Marcus Vance" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1">Rating</label>
+        <div class="flex space-x-1 text-2xl text-amber-400 cursor-pointer">
+          <span v-for="s in 5" :key="s" @click="newReview.rating = s" :class="s <= newReview.rating ? 'text-amber-400' : 'text-slate-700'">★</span>
+        </div>
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1">Headline</label>
+        <input type="text" v-model="newReview.title" placeholder="Flawless experience" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1">Comments</label>
+        <textarea v-model="newReview.comment" rows="3" placeholder="Share your experience..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
+      </div>
+      <button @click="publishReview" :disabled="!newReview.author || !newReview.comment" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold rounded-xl shadow-lg">
+        Publish Verified Review 🚀
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-800/80 py-8 text-xs text-slate-400 text-center">
+    OmniCommerce Platform — Pillar 2: E-Commerce & Digital Marketplace Architecture
+  </footer>
+
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+
+createApp({
+  setup() {
+    const activeTab = ref('catalog');
+    const currency = ref('USD');
+    const isCartOpen = ref(false);
+    const isCheckoutOpen = ref(false);
+    const modalProduct = ref(null);
+    const showWriteModal = ref(false);
+
+    const currencies = [
+      { code: 'USD', symbol: '$', rate: 1.0, precision: 2 },
+      { code: 'EUR', symbol: '€', rate: 0.92, precision: 2 },
+      { code: 'GBP', symbol: '£', rate: 0.79, precision: 2 },
+      { code: 'JPY', symbol: '¥', rate: 155.20, precision: 0 },
+      { code: 'BTC', symbol: '₿', rate: 0.000015, precision: 6 },
+      { code: 'ETH', symbol: 'Ξ', rate: 0.00029, precision: 5 },
+      { code: 'USDT', symbol: '₮', rate: 1.0, precision: 2 },
+    ];
+
+    const currentMeta = computed(() => currencies.find(c => c.code === currency.value) || currencies[0]);
+    const currentSymbol = computed(() => currentMeta.value.symbol);
+
+    function formatCurrency(amountUsd) {
+      const meta = currentMeta.value;
+      const converted = amountUsd * meta.rate;
+      if (meta.code === 'BTC' || meta.code === 'ETH') return `${meta.symbol} ${converted.toFixed(meta.precision)}`;
+      if (meta.code === 'JPY') return `${meta.symbol} ${Math.round(converted).toLocaleString()}`;
+      return `${meta.symbol} ${converted.toFixed(2)}`;
+    }
+
+    const filterTabs = [
+      { key: 'ALL', label: 'All Products', icon: '🌐' },
+      { key: 'PHYSICAL', label: 'Physical Hardware', icon: '📦' },
+      { key: 'DIGITAL', label: 'Digital Downloads', icon: '💾' },
+      { key: 'SAAS', label: 'SaaS Tiers', icon: '⚡' },
+      { key: 'COURSE', label: 'Video Courses', icon: '🎓' },
+    ];
+    const selectedType = ref('ALL');
+    const searchQuery = ref('');
+    const sortOrder = ref('featured');
+
+    const products = ref([
+      { id: 1, name: 'Apex MechPro Wireless Split Keyboard', product_type: 'PHYSICAL', category: 'Hardware & Gear', short_description: 'Ultra-ergonomic split mechanical keyboard with hot-swappable switches and CNC aluminum chassis.', price: 189.00, compare_at_price: 229.00, image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80', badge_label: 'Best Seller', rating_average: 4.92, rating_count: 128, sku: 'HW-KB-APEX01', stock_quantity: 42, weight_kg: 1.35, dimensions: '34 x 16 x 3.8 cm' },
+      { id: 2, name: 'StudioMaster USB-C Audio Interface 4K', product_type: 'PHYSICAL', category: 'Hardware & Gear', short_description: '24-bit/192kHz low-noise studio preamp with balanced TRS outputs and zero-latency hardware monitoring.', price: 249.00, compare_at_price: 289.00, image_url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=800&q=80', badge_label: 'Staff Pick', rating_average: 4.85, rating_count: 84, sku: 'HW-AUD-SM4K', stock_quantity: 19, weight_kg: 0.92, dimensions: '21 x 14 x 5.2 cm' },
+      { id: 3, name: 'Aerospace Grade Titanium Laptop Stand', product_type: 'PHYSICAL', category: 'Hardware & Gear', short_description: 'Laser-cut titanium alloy folding stand with multi-angle height adjustment and passive airflow channel.', price: 75.00, compare_at_price: 95.00, image_url: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=800&q=80', badge_label: 'Top Rated', rating_average: 4.78, rating_count: 61, sku: 'HW-STD-TITN', stock_quantity: 88, weight_kg: 0.48, dimensions: '26 x 22 x 0.4 cm' },
+      { id: 4, name: 'Cinematic 8K Color Grading LUTs & Grain Pack', product_type: 'DIGITAL', category: 'Digital Downloads', short_description: '65+ Hollywood film emulation LUTs (.CUBE) calibrated for Arri, RED, Sony S-Log3, and Apple Log.', price: 39.00, compare_at_price: 79.00, image_url: 'https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=800&q=80', badge_label: 'Instant ZIP', rating_average: 4.96, rating_count: 312, file_format: 'ZIP Archive', file_size_mb: 620.00 },
+      { id: 5, name: 'Modern SaaS Design System (Figma & Tailwind Kit)', product_type: 'DIGITAL', category: 'Digital Downloads', short_description: '350+ accessible components, interactive charts, auth flows, and responsive dark-mode layouts.', price: 59.00, compare_at_price: 119.00, image_url: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?auto=format&fit=crop&w=800&q=80', badge_label: 'Hot Download', rating_average: 4.91, rating_count: 195, file_format: 'Figma + ZIP', file_size_mb: 180.50 },
+      { id: 6, name: 'CloudPulse Distributed Observability - Pro Tier', product_type: 'SAAS', category: 'SaaS Cloud Tools', short_description: 'Continuous APM metrics, distributed OpenTelemetry tracing, and automated anomaly alert rules.', price: 89.00, compare_at_price: 129.00, image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80', badge_label: '14-Day Trial', rating_average: 4.88, rating_count: 77, billing_interval: 'monthly', trial_period_days: 14, tier_level: 'Pro Tier' },
+      { id: 7, name: 'High-Scale Distributed Systems Architecture', product_type: 'COURSE', category: 'Academy Courses', short_description: 'Master event-driven architecture, Raft consensus, Kafka partitions, and zero-downtime database sharding.', price: 149.00, compare_at_price: 249.00, image_url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80', badge_label: 'Masterclass', rating_average: 4.97, rating_count: 240, duration_hours: 26.5, lesson_count: 54, instructor_name: 'Dr. Elena Rostova' },
+      { id: 8, name: 'The Full-Stack Vue 3 & Django Enterprise Blueprint', product_type: 'COURSE', category: 'Academy Courses', short_description: 'Build multi-tenant SaaS, universal cart checkout, Pinia architecture, and JWT secure auth from scratch.', price: 119.00, compare_at_price: 189.00, image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80', badge_label: 'Certified', rating_average: 4.94, rating_count: 182, duration_hours: 21.0, lesson_count: 42, instructor_name: 'Marcus Vance' },
+    ]);
+
+    function getTypeCount(type) {
+      if (type === 'ALL') return products.value.length;
+      return products.value.filter(p => p.product_type === type).length;
+    }
+
+    function getTypeBadge(type) {
+      switch (type) {
+        case 'PHYSICAL': return { label: 'Hardware', icon: '📦', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+        case 'DIGITAL': return { label: 'Digital', icon: '💾', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' };
+        case 'SAAS': return { label: 'SaaS Tier', icon: '⚡', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+        case 'COURSE': return { label: 'Course', icon: '🎓', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
+        default: return { label: 'Product', icon: '🏷️', color: 'bg-slate-700 text-slate-300' };
+      }
+    }
+
+    const filteredProducts = computed(() => {
+      let list = [...products.value];
+      if (selectedType.value !== 'ALL') list = list.filter(p => p.product_type === selectedType.value);
+      if (searchQuery.value.trim()) {
+        const q = searchQuery.value.toLowerCase();
+        list = list.filter(p => p.name.toLowerCase().includes(q) || p.short_description.toLowerCase().includes(q));
+      }
+      if (sortOrder.value === 'price_asc') list.sort((a, b) => a.price - b.price);
+      else if (sortOrder.value === 'price_desc') list.sort((a, b) => b.price - a.price);
+      else if (sortOrder.value === 'rating') list.sort((a, b) => b.rating_average - a.rating_average);
+      return list;
+    });
+
+    // CART STATE
+    const cartItems = ref([
+      { id: 1, name: 'Apex MechPro Wireless Split Keyboard', product_type: 'PHYSICAL', price: 189.00, quantity: 1, image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80' },
+      { id: 4, name: 'Cinematic 8K Color Grading LUTs & Grain Pack', product_type: 'DIGITAL', price: 39.00, quantity: 1, image_url: 'https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=800&q=80' }
+    ]);
+    const couponCode = ref('');
+    const couponDiscountUsd = ref(0);
+    const couponMessage = ref('');
+    const couponValid = ref(false);
+
+    const cartItemCount = computed(() => cartItems.value.reduce((acc, it) => acc + it.quantity, 0));
+    const cartSubtotal = computed(() => cartItems.value.reduce((acc, it) => acc + (it.price * it.quantity), 0));
+    const hasPhysicalItems = computed(() => cartItems.value.some(it => it.product_type === 'PHYSICAL'));
+    const freeShippingUnlocked = computed(() => !hasPhysicalItems.value || cartSubtotal.value >= 100 || couponCode.value.toUpperCase() === 'FREESHIP');
+    const freeShippingProgress = computed(() => hasPhysicalItems.value ? Math.min(100, Math.round((cartSubtotal.value / 100) * 100)) : 100);
+    const amountForFreeShipping = computed(() => Math.max(0, 100 - cartSubtotal.value));
+    const cartShipping = computed(() => hasPhysicalItems.value ? (freeShippingUnlocked.value ? 0 : 12.00) : 0);
+    const cartDiscount = computed(() => couponDiscountUsd.value);
+    const cartTax = computed(() => Math.round(Math.max(0, cartSubtotal.value - cartDiscount.value) * 0.0825 * 100) / 100);
+    const cartTotal = computed(() => Math.max(0, cartSubtotal.value - cartDiscount.value + cartShipping.value + cartTax.value));
+
+    function addToCart(p) {
+      const ex = cartItems.value.find(i => i.id === p.id);
+      if (ex) ex.quantity++;
+      else cartItems.value.push({ ...p, quantity: 1 });
+      isCartOpen.value = true;
+    }
+    function updateQty(id, qty) {
+      const ex = cartItems.value.find(i => i.id === id);
+      if (ex) {
+        if (qty <= 0) removeItem(id);
+        else ex.quantity = qty;
+      }
+    }
+    function removeItem(id) {
+      cartItems.value = cartItems.value.filter(i => i.id !== id);
+    }
+    function applyCoupon() {
+      const code = couponCode.value.trim().toUpperCase();
+      if (code === 'SAVE20') {
+        couponDiscountUsd.value = Math.round(cartSubtotal.value * 0.20 * 100) / 100;
+        couponMessage.value = '20% Off Promo Code Applied!';
+        couponValid.value = true;
+      } else if (code === 'DIGITAL50') {
+        couponDiscountUsd.value = Math.round(cartSubtotal.value * 0.50 * 100) / 100;
+        couponMessage.value = '50% Off Digital Pass Applied!';
+        couponValid.value = true;
+      } else if (code === 'FREESHIP') {
+        couponDiscountUsd.value = 0;
+        couponMessage.value = 'Free Shipping Unlocked!';
+        couponValid.value = true;
+      } else {
+        couponDiscountUsd.value = 0;
+        couponMessage.value = 'Invalid promo code.';
+        couponValid.value = false;
+      }
+    }
+
+    // CHECKOUT
+    const checkoutForm = ref({ name: 'Alex Morgan', email: 'alex@ventures.io', refCode: 'CREATOR25', method: 'Card' });
+    const orderCompleted = ref(null);
+    function completeOrder() {
+      orderCompleted.value = {
+        number: 'ORD-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        total: cartTotal.value,
+        name: checkoutForm.value.name,
+        email: checkoutForm.value.email,
+        items: [...cartItems.value]
+      };
+      cartItems.value = [];
+    }
+
+    // INVOICE
+    const invoiceData = ref({
+      number: 'INV-2026-9842',
+      date: new Date().toISOString().split('T')[0],
+      companyName: 'OmniCommerce Global Inc.',
+      companyTaxId: 'US-EIN-984321789',
+      clientName: 'Alex Morgan',
+      clientEmail: 'alex@ventures.io',
+      taxRate: 8.25,
+      discount: 0,
+      items: [
+        { desc: 'Apex MechPro Wireless Split Keyboard (Physical)', qty: 1, price: 189.00 },
+        { desc: 'Cinematic 8K Color Grading LUTs & Grain Pack (Digital License)', qty: 1, price: 39.00 }
+      ]
+    });
+    const invoiceSubtotal = computed(() => invoiceData.value.items.reduce((s, i) => s + (Number(i.qty) * Number(i.price)), 0));
+    const invoiceTax = computed(() => (Math.max(0, invoiceSubtotal.value - invoiceData.value.discount) * (invoiceData.value.taxRate / 100)));
+    const invoiceTotal = computed(() => Math.max(0, invoiceSubtotal.value - invoiceData.value.discount + invoiceTax.value));
+    function loadOrderIntoInvoice(ord) {
+      invoiceData.value.number = 'INV-' + ord.number.substring(4);
+      invoiceData.value.clientName = ord.name;
+      invoiceData.value.clientEmail = ord.email;
+      invoiceData.value.items = ord.items.map(i => ({ desc: i.name, qty: i.quantity, price: i.price }));
+    }
+    function printInvoice() { window.print(); }
+
+    // AFFILIATE
+    const affiliateBalance = ref(540.00);
+    const referralLink = ref('https://omnicommerce.io?ref=CREATOR25');
+    const copySuccess = ref(false);
+    const payoutMsg = ref('');
+    function copyReferral() {
+      navigator.clipboard.writeText(referralLink.value);
+      copySuccess.value = true;
+      setTimeout(() => copySuccess.value = false, 2500);
+    }
+    function requestPayout() {
+      const amt = affiliateBalance.value;
+      affiliateBalance.value = 0;
+      payoutMsg.value = `Payout request of $${amt.toFixed(2)} submitted successfully!`;
+      setTimeout(() => payoutMsg.value = '', 4000);
+    }
+
+    // REVIEWS
+    const reviews = ref([
+      { id: 1, product_name: 'Apex MechPro Wireless Split Keyboard', author_name: 'Jason Miller', rating: 5, title: 'Best keyboard purchase I have ever made!', comment: 'The split ergonomics eliminated my wrist fatigue completely within 3 days. CNC aluminum feels super solid.', is_verified_buyer: true, photo_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=400&q=80', helpful_votes: 34, created_at: '2026-10-02' },
+      { id: 2, product_name: 'Apex MechPro Wireless Split Keyboard', author_name: 'Sophia Krause', rating: 5, title: 'Stunning build quality and battery life', comment: 'Connects seamlessly to both Mac and Linux rigs via Bluetooth. Zero latency.', is_verified_buyer: true, photo_url: 'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=400&q=80', helpful_votes: 19, created_at: '2026-10-05' },
+      { id: 3, product_name: 'Cinematic 8K Color Grading LUTs', author_name: 'David Reynolds', rating: 5, title: 'Saved me dozens of hours on our Netflix spec documentary', comment: 'The 35mm film grain overlays combined with Kodak 2383 are astonishingly authentic.', is_verified_buyer: true, photo_url: 'https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=400&q=80', helpful_votes: 27, created_at: '2026-10-08' },
+    ]);
+    const filterRating = ref(0);
+    const filteredReviews = computed(() => filterRating.value > 0 ? reviews.value.filter(r => r.rating === filterRating.value) : reviews.value);
+    const newReview = ref({ author: '', rating: 5, title: '', comment: '' });
+    function publishReview() {
+      reviews.value.unshift({ id: Date.now(), product_name: 'Apex MechPro Wireless Split Keyboard', author_name: newReview.value.author, rating: newReview.value.rating, title: newReview.value.title || 'Superb quality', comment: newReview.value.comment, is_verified_buyer: true, photo_url: '', helpful_votes: 0, created_at: new Date().toISOString().split('T')[0] });
+      newReview.value = { author: '', rating: 5, title: '', comment: '' };
+      showWriteModal.value = false;
+    }
+
+    function openModal(p) { modalProduct.value = p; }
+
+    return {
+      activeTab, currency, currencies, currentMeta, currentSymbol, formatCurrency,
+      filterTabs, selectedType, searchQuery, sortOrder, products, filteredProducts, getTypeCount, getTypeBadge,
+      cartItems, isCartOpen, cartItemCount, cartSubtotal, hasPhysicalItems, freeShippingUnlocked, freeShippingProgress, amountForFreeShipping, cartShipping, cartDiscount, cartTax, cartTotal,
+      couponCode, couponMessage, couponValid, addToCart, updateQty, removeItem, applyCoupon,
+      isCheckoutOpen, checkoutForm, orderCompleted, completeOrder,
+      invoiceData, invoiceSubtotal, invoiceTax, invoiceTotal, loadOrderIntoInvoice, printInvoice,
+      affiliateBalance, referralLink, copySuccess, payoutMsg, copyReferral, requestPayout,
+      reviews, filterRating, filteredReviews, showWriteModal, newReview, publishReview,
+      modalProduct, openModal
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
